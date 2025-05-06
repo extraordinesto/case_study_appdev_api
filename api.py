@@ -84,13 +84,33 @@ def customer():
 @app.route('/product/transaction', methods=['POST'])
 def product_transaction():
     data = request.json
-    transaction_type = data['type']  # 'IN' or 'OUT'
+    transaction_type = data.get('type')
 
     try:
         cursor = db.cursor()
 
         if transaction_type == 'IN':
-            query = """
+            # Check if itemNumber or itemName already exists
+            check_query = "SELECT COUNT(*) FROM item WHERE itemNumber = %s OR itemName = %s"
+            cursor.execute(
+                "SELECT itemNumber, itemName FROM item WHERE itemNumber = %s OR itemName = %s",
+                (data['itemNumber'], data['itemName'])
+            )
+            existing = cursor.fetchall()
+
+            item_number_exists = any(row[0] == data['itemNumber'] for row in existing)
+            item_name_exists = any(row[1] == data['itemName'] for row in existing)
+
+            if item_number_exists and item_name_exists:
+                return jsonify({'status': 'error', 'message': 'ItemNumber and ItemName already exist'}), 400
+            elif item_number_exists:
+                return jsonify({'status': 'error', 'message': 'ItemNumber already exists'}), 400
+            elif item_name_exists:
+                return jsonify({'status': 'error', 'message': 'ItemName already exists'}), 400
+
+
+            # Insert new item
+            insert_query = """
                 INSERT INTO item 
                 (itemNumber, itemName, discount, stock, unitPrice, imageURL, status, description)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -98,35 +118,52 @@ def product_transaction():
             values = (
                 data['itemNumber'],
                 data['itemName'],
-                data['discount'],
-                data['stock'],
-                data['unitPrice'],
+                float(data['discount']),
+                int(data['stock']),
+                float(data['unitPrice']),
                 data.get('imageURL', 'imageNotAvailable.jpg'),
                 data['status'],
                 data['description']
             )
-            cursor.execute(query, values)
+            cursor.execute(insert_query, values)
             db.commit()
             return jsonify({'status': 'success', 'message': 'Product added successfully'})
 
         elif transaction_type == 'OUT':
-            update_stock_query = "UPDATE item SET stockQuantity = stockQuantity - %s WHERE itemNumber = %s"
-            cursor.execute(update_stock_query, (data['quantity'], data['itemNumber']))
+            item_number = data['itemNumber']
+            quantity_requested = int(data['quantity'])
 
+            # Check stock availability
+            cursor.execute("SELECT stock FROM item WHERE itemNumber = %s", (item_number,))
+            result = cursor.fetchone()
+
+            if not result:
+                return jsonify({'status': 'error', 'message': 'Item not found'}), 400
+
+            current_stock = result[0]
+
+            if quantity_requested > current_stock:
+                return jsonify({'status': 'error', 'message': 'Insufficient stock'}), 400
+
+            # Deduct stock
+            update_stock_query = "UPDATE item SET stock = stock - %s WHERE itemNumber = %s"
+            cursor.execute(update_stock_query, (quantity_requested, item_number))
+
+            # Record sale
             insert_sale_query = """
                 INSERT INTO sale 
                 (itemNumber, customerID, customerName, itemName, saleDate, discount, quantity, unitPrice)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
             sale_values = (
-                data['itemNumber'],
+                item_number,
                 data['customerID'],
                 data['customerName'],
                 data['itemName'],
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                data['discount'],
-                data['quantity'],
-                data['unitPrice']
+                float(data['discount']),
+                quantity_requested,
+                float(data['unitPrice'])
             )
             cursor.execute(insert_sale_query, sale_values)
             db.commit()
@@ -137,7 +174,7 @@ def product_transaction():
 
     except Exception as e:
         print("Transaction error:", str(e))
-        return jsonify({'status': 'error', 'message': str(e)})
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
     finally:
         cursor.close()
