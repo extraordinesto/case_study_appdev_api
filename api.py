@@ -81,17 +81,53 @@ def customer():
     
     return jsonify(customer)
 
+@app.route("/add_customer", methods=["POST"])
+def add_customer():
+    try:
+        data = request.json
+        print("Received Data:", data)  # Debugging
+
+        fullName = data["fullName"]
+        email = data["email"]
+        mobile = data["mobile"]
+        phone2 = data["phone2"]
+        address = data["address"]
+        address2 = data["address2"]
+        city = data["city"]
+        district = data["district"]
+        status = data["status"]
+
+        cursor = db.cursor()
+
+        insert_query = """INSERT INTO customer 
+                          (fullName, email, mobile, phone2, address, address2, city, district, status) 
+                          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        
+        values = (fullName, email, mobile, phone2, address, address2, city, district, status)
+
+        cursor.execute(insert_query, values)
+        db.commit()
+
+        return jsonify({"message": "Customer added successfully!"}), 201
+
+    except Exception as e:
+        print("Error:", str(e))  # Debugging
+        return jsonify({"error": "Failed to add product", "details": str(e)}), 500
+    
+    finally:
+        cursor.close()
+
 @app.route('/product/transaction', methods=['POST'])
 def product_transaction():
     data = request.json
     transaction_type = data.get('type')
+    cursor = None
 
     try:
         cursor = db.cursor()
 
         if transaction_type == 'IN':
             # Check if itemNumber or itemName already exists
-            check_query = "SELECT COUNT(*) FROM item WHERE itemNumber = %s OR itemName = %s"
             cursor.execute(
                 "SELECT itemNumber, itemName FROM item WHERE itemNumber = %s OR itemName = %s",
                 (data['itemNumber'], data['itemName'])
@@ -107,7 +143,6 @@ def product_transaction():
                 return jsonify({'status': 'error', 'message': 'ItemNumber already exists'}), 400
             elif item_name_exists:
                 return jsonify({'status': 'error', 'message': 'ItemName already exists'}), 400
-
 
             # Insert new item
             insert_query = """
@@ -136,6 +171,7 @@ def product_transaction():
             # Check stock availability
             cursor.execute("SELECT stock FROM item WHERE itemNumber = %s", (item_number,))
             result = cursor.fetchone()
+            cursor.fetchall()  # Consume any unread result if needed
 
             if not result:
                 return jsonify({'status': 'error', 'message': 'Item not found'}), 400
@@ -177,7 +213,11 @@ def product_transaction():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
     finally:
-        cursor.close()
+        if cursor:
+            try:
+                cursor.close()
+            except Exception as close_error:
+                print("Cursor close error:", close_error)
         
 # Run the app
 if __name__ == '__main__':
