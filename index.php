@@ -1,5 +1,6 @@
 <?php include './inc/header.php'; ?>
 <link rel="stylesheet" href="./css/item.css">
+
 <!-- Main Content -->
 <div class="content-container">
   <div class="content">
@@ -20,12 +21,16 @@
     .then((response) => response.json())
     .then((data) => {
       data.forEach((item) => {
-        const itemNumber = item.itemNumber || "0";
-        const imageName = item.imageURL || "placeholder.jpg";
-        const imageUrl = `http://192.168.100.15/Advance_IMS/data/item_images/${itemNumber}/${encodeURIComponent(imageName)}`;
         const itemName = item.itemName || "Item";
+        const itemNumber = item.itemNumber || "0";
         const unitPrice = item.unitPrice || 0;
         const stock = item.stock || "0";
+        const imageURL = item.imageURL || "placeholder.jpg";
+
+        // Detect if imageURL is internet URL
+        const imageUrl = imageURL.startsWith('http')
+          ? imageURL
+          : `http://192.168.100.15/Advance_IMS/data/item_images/${itemNumber}/${encodeURIComponent(imageURL)}`;
 
         const card = document.createElement("div");
         card.className = "card";

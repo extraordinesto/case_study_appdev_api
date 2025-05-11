@@ -1,6 +1,24 @@
 <?php include './inc/header.php'; ?>
 
 <link rel="stylesheet" href="./css/customer.css">
+<style>
+    .btn-edit {
+        padding: 4px 8px;
+        background-color: #2c7be5;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .btn-delete {
+        padding: 4px 8px;
+        background-color: #e55353;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        margin-left: 5px;
+    }
+</style>
 <div class="content-container">
     <div class="content">
         <h2>Customer Information</h2>
@@ -92,6 +110,7 @@
                         <th>ID</th>
                         <th>Customer Name</th>
                         <th>Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="display_product">
@@ -129,9 +148,27 @@
                 <td>${product.customerID}</td>
                 <td>${product.fullName}</td>
                 <td>${product.status}</td>
+                <td>
+                    <a href="edit_customer.php?id=${product.customerID}" class="btn-edit">Edit</a>
+                    <a href="#" class="btn-delete" onclick="deleteCustomer(${product.customerID})">Delete</a>
+                </td>
             `;
             tableBody.appendChild(row);
         });
+    }
+
+    function deleteCustomer(id) {
+        if (confirm("Are you sure you want to delete this customer?")) {
+            fetch(`http://127.0.0.1:5000/delete_customer/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    fetchCustomer(); // refresh table
+                })
+                .catch(error => console.error("Error deleting customer:", error));
+        }
     }
 
     function addCustomer() {

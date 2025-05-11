@@ -87,6 +87,78 @@ def customer():
     
     return jsonify(customer)
 
+@app.route("/delete_customer/<int:customerID>", methods=["DELETE"])
+def delete_customer(customerID):
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("DELETE FROM customer WHERE customerID = %s", (customerID,))
+        db.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({"message": "Customer not found"}), 404
+
+        return jsonify({"message": "Customer deleted successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+
+@app.route('/edit_customer/<int:customer_id>', methods=['PUT'])
+def edit_customer(customer_id):
+    data = request.json
+
+    try:
+        cursor = db.cursor(dictionary=True)
+
+        update_query = """
+            UPDATE customer
+            SET fullName=%s, email=%s, mobile=%s, phone2=%s,
+                address=%s, address2=%s, city=%s, district=%s, status=%s
+            WHERE customerID=%s
+        """
+        values = (
+            data['fullName'],
+            data['email'],
+            data['mobile'],
+            data['phone2'],
+            data['address'],
+            data['address2'],
+            data['city'],
+            data['district'],
+            data['status'],
+            customer_id
+        )
+
+        cursor.execute(update_query, values)
+        db.commit()
+
+        return jsonify({'message': 'Customer updated successfully!'})
+
+    except Exception as e:
+        return jsonify({'message': 'Error updating customer', 'error': str(e)}), 500
+
+    finally:
+        cursor.close()
+
+@app.route('/customer/<int:customer_id>', methods=['GET'])
+def get_customer(customer_id):
+    try:
+        cursor = db.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM customer WHERE customerID = %s", (customer_id,))
+        customer = cursor.fetchone()
+
+        if customer:
+            return jsonify(customer)
+        else:
+            return jsonify({"message": "Customer not found"}), 404
+
+    except Exception as e:
+        return jsonify({"message": "Error fetching customer", "error": str(e)}), 500
+
+    finally:
+        cursor.close()
+
 @app.route("/add_customer", methods=["POST"])
 def add_customer():
     try:
