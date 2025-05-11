@@ -22,7 +22,7 @@
       data.forEach((item) => {
         const itemNumber = item.itemNumber || "0";
         const imageName = item.imageURL || "placeholder.jpg";
-        const imageUrl = `http://192.168.100.4/Advance_IMS/data/item_images/${itemNumber}/${encodeURIComponent(imageName)}`;
+        const imageUrl = `http://192.168.100.15/Advance_IMS/data/item_images/${itemNumber}/${encodeURIComponent(imageName)}`;
         const itemName = item.itemName || "Item";
         const unitPrice = item.unitPrice || 0;
         const stock = item.stock || "0";

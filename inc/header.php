@@ -26,6 +26,9 @@
       <ul>
         <li><a href="./out.php">Out Item</a></li>
       </ul>
+      <ul>
+        <li><a href="./ai_image_recognition.php">AI Image Recognition</a></li>
+      </ul>
     </nav>
   </div>
 
