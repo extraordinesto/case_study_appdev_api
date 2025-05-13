@@ -17,7 +17,7 @@
       <ul>
         <li><a href="./customer.php">Customer</a></li>
       </ul>
-      <ul>
+      <!-- <ul>
         <li><a href="./scan.php">QR Scanner</a></li>
       </ul>
       <ul>
@@ -25,7 +25,7 @@
       </ul>
       <ul>
         <li><a href="./out.php">Out Item</a></li>
-      </ul>
+      </ul> -->
       <ul>
         <li><a href="./ai_image_recognition.php">AI Image Recognition</a></li>
       </ul>

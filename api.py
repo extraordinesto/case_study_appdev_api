@@ -195,6 +195,77 @@ def add_customer():
     finally:
         cursor.close()
 
+@app.route('/delete_item/<string:itemNumber>', methods=['DELETE'])
+def delete_item(itemNumber):
+    try:
+        cursor = db.cursor()
+
+        cursor.execute("DELETE FROM item WHERE itemNumber = %s", (itemNumber,))
+        db.commit()
+
+        return jsonify({"message": "Item deleted successfully"})
+
+    except Exception as e:
+        return jsonify({"message": "Failed to delete item", "error": str(e)}), 500
+
+    finally:
+        cursor.close()
+
+@app.route('/edit_item/<int:item_id>', methods=['PUT'])
+def edit_item(item_id):
+    data = request.json
+
+    try:
+        cursor = db.cursor(dictionary=True)
+
+        update_query = """
+            UPDATE item
+            SET itemNumber=%s, itemName=%s, discount=%s, stock=%s,
+                unitPrice=%s, imageURL=%s, status=%s, description=%s
+            WHERE productID=%s
+        """
+        values = (
+            data["itemNumber"],
+            data["itemName"],
+            data["discount"],
+            data["stock"],
+            data["unitPrice"],
+            data["imageURL"],
+            data["status"],
+            data["description"],
+            item_id
+        )
+
+        cursor.execute(update_query, values)
+        db.commit()
+
+        return jsonify({'message': 'Item updated successfully!'})
+
+    except Exception as e:
+        return jsonify({'message': 'Error updating item', 'error': str(e)}), 500
+
+    finally:
+        cursor.close()
+
+@app.route('/item/<int:item_id>', methods=['GET'])
+def get_item(item_id):
+    try:
+        cursor = db.cursor(dictionary=True)
+
+        cursor.execute("SELECT * FROM item WHERE productID = %s", (item_id,))
+        item = cursor.fetchone()
+
+        if item:
+            return jsonify(item)
+        else:
+            return jsonify({"message": "Item not found"}), 404
+
+    except Exception as e:
+        return jsonify({"message": "Error fetching item", "error": str(e)}), 500
+
+    finally:
+        cursor.close()
+
 @app.route('/product/transaction', methods=['POST'])
 def product_transaction():
     data = request.json
@@ -202,7 +273,7 @@ def product_transaction():
     cursor = None
 
     try:
-        cursor = db.cursor()
+        cursor = db.cursor(buffered=True)
 
         if transaction_type == 'IN':
             # Check if itemNumber or itemName already exists
@@ -249,7 +320,6 @@ def product_transaction():
             # Check stock availability
             cursor.execute("SELECT stock FROM item WHERE itemNumber = %s", (item_number,))
             result = cursor.fetchone()
-            cursor.fetchall()  # Consume any unread result if needed
 
             if not result:
                 return jsonify({'status': 'error', 'message': 'Item not found'}), 400
